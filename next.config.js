@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    reactStrictMode: true,
     transpilePackages: ['antd-mobile'],
     webpack: (config) => {
-      // 为了解决 antd-mobile 的 CSS 导入问题
       return config;
     },
   };

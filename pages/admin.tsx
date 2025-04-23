@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import AdminTable from '../components/AdminTable';
 import { NavBar, DotLoading, SafeArea } from 'antd-mobile';
+import ClientOnly from '../components/ClientOnly';
 
 export default function Admin() {
   const router = useRouter();
@@ -54,18 +55,20 @@ export default function Admin() {
 
       <main className="bg-white min-h-screen">
         <div className="flex flex-col h-screen">
-          {/* 顶部导航栏 */}
-          <NavBar 
-            right={<span onClick={handleLogout} className="text-primary">退出登录</span>}
-            backArrow={false}
-          >
-            管理员后台
-          </NavBar>
+          <ClientOnly>
+            {/* 顶部导航栏 */}
+            <NavBar 
+              right={<span onClick={handleLogout} className="text-primary">退出登录</span>}
+              backArrow={false}
+            >
+              管理员后台
+            </NavBar>
 
-          {/* 数据表格 */}
-          <div className="flex-1 overflow-auto">
-            <AdminTable />
-          </div>
+            {/* 数据表格 */}
+            <div className="flex-1 overflow-auto">
+              <AdminTable />
+            </div>
+          </ClientOnly>
         </div>
         <SafeArea position='bottom' />
       </main>
