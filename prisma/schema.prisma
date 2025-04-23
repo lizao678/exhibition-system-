@@ -1,0 +1,43 @@
+// 数据库连接配置
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Prisma Client 生成配置
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 表单数据模型
+model FormData {
+  id              Int       @id @default(autoincrement())
+  xingming        String    // 姓名
+  bumen           String    // 部门
+  jinruRiqi       DateTime  // 进入日期
+  shiyou          String    // 事由
+  jieyongYangyi   Boolean   @default(false) // 是否借用样衣
+  yangyiBianhao   String?   // 样衣编号（可选）
+  yujiGuihuanRiqi DateTime? // 预计归还时间（可选）
+  tijiaoRiqi      DateTime  @default(now()) // 提交时间
+  shijiGuihuanRiqi DateTime? // 实际归还日期（可选）
+
+  // 索引配置
+  @@index([xingming])
+  @@index([bumen])
+  @@index([yangyiBianhao])
+}
+
+// 系统配置模型
+model Config {
+  id    Int    @id @default(autoincrement())
+  key   String @unique // 配置键
+  value String // 配置值
+}
+
+// 管理员模型
+model Admin {
+  id         Int    @id @default(autoincrement())
+  yonghuming String @unique // 用户名
+  mima       String // 密码（bcrypt加密）
+} 
