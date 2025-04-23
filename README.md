@@ -96,7 +96,7 @@ pnpm dev
 - 导入你的 GitHub 仓库
 - 配置构建设置：
   - Framework Preset: Next.js
-  - Build Command: `pnpm prisma generate && pnpm prisma db push && pnpm build`
+  - Build Command: `pnpm run vercel-build`
   - Install Command: `pnpm install`
   - Output Directory: `.next`
 - 配置环境变量：
@@ -111,19 +111,25 @@ pnpm dev
   - Node.js Version: 18.x（或更高）
 - 点击 "Deploy"
 
-4. **数据库初始化**
+4. **数据库初始化（重要：在部署前执行）**
 
-部署完成后，你需要初始化数据库和创建管理员账号：
+在部署到 Vercel 之前，你需要在本地完成数据库初始化：
 
-- 在本地修改 `.env` 文件，将 `DATABASE_URL` 更新为 Supabase 提供的连接字符串
-- 运行数据库迁移：
-  ```bash
-  pnpm prisma db push
-  ```
-- 创建管理员账号：
-  ```bash
-  node scripts/create-admin.js
-  ```
+1. 确保你的本地 `.env` 文件中包含正确的 Supabase 连接字符串
+2. 运行数据库迁移：
+   ```bash
+   # 确保你的 IP 已添加到 Supabase 的允许列表中
+   pnpm prisma db push
+   ```
+3. 创建管理员账号：
+   ```bash
+   node scripts/create-admin.js
+   ```
+
+注意：如果遇到数据库连接问题，请检查：
+- Supabase 项目的 Database Settings 中的 Connection Pooling 设置
+- 确保你的 IP 地址已添加到 Supabase 的允许列表中
+- 检查数据库连接字符串格式是否正确
 
 5. **验证部署**
 
@@ -137,17 +143,21 @@ pnpm dev
 - 确保所有必需的环境变量都已正确配置
 - 邮箱配置建议使用 QQ 邮箱的 SMTP 服务
 
-2. **Supabase 数据库**
-- 免费版每月有 500MB 存储限制
-- 注意连接池限制（免费版为 10）
-- 建议定期备份数据
-- 可以使用 Supabase Dashboard 监控数据库性能
-
-3. **性能优化**
-- 使用 Supabase 的连接池管理
-- 合理使用数据库索引
-- 使用 Vercel Edge Functions
-- 合理使用缓存
+2. **Supabase 数据库连接**
+- 在 Supabase Dashboard 中配置 Connection Pooling：
+  - 进入 Project Settings > Database
+  - 找到 Connection Pooling 设置
+  - 建议设置 Pool Mode 为 `transaction`
+  - 设置 Pool Size 为 5（免费版建议值）
+- 在 Database Settings 中添加你的 IP 地址到允许列表
+- 使用正确的连接字符串格式：
+  ```
+  postgres://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres
+  ```
+- 如果使用 Connection Pooling，连接字符串应该是：
+  ```
+  postgres://postgres:[YOUR-PASSWORD]@[YOUR-PROJECT-REF].pooler.supabase.com:6543/postgres
+  ```
 
 ## 常见问题
 

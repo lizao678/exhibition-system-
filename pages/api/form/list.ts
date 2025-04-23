@@ -30,7 +30,7 @@ export default async function handler(
     // 获取列表数据
     const list = await prisma.formData.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { tijiaoRiqi: 'desc' },
       skip,
       take: parseInt(pageSize as string),
     });
