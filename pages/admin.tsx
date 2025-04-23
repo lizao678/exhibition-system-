@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import AdminLogin from '../components/AdminLogin';
 import AdminTable from '../components/AdminTable';
 import { NavBar, DotLoading, SafeArea } from 'antd-mobile';
 
@@ -14,19 +13,35 @@ export default function Admin() {
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem('adminToken');
-      setIsAuthenticated(!!token);
+      if (!token) {
+        // 未登录，跳转到登录页
+        router.replace('/login');
+        return;
+      }
+      setIsAuthenticated(true);
       setIsLoading(false);
     };
 
     checkAuth();
-  }, []);
+  }, [router]);
 
   // 处理登出
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
-    setIsAuthenticated(false);
-    router.push('/admin');
+    router.replace('/login');
   };
+
+  // 如果正在加载或未认证，不显示内容
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <DotLoading color='primary' />
+          <div className="mt-2 text-gray-500">加载中...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -38,31 +53,20 @@ export default function Admin() {
       </Head>
 
       <main className="bg-white min-h-screen">
-        {isLoading ? (
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="text-center">
-              <DotLoading color='primary' />
-              <div className="mt-2 text-gray-500">加载中...</div>
-            </div>
-          </div>
-        ) : isAuthenticated ? (
-          <div className="flex flex-col h-screen">
-            {/* 顶部导航栏 */}
-            <NavBar 
-              right={<span onClick={handleLogout} className="text-primary">退出登录</span>}
-              backArrow={false}
-            >
-              管理员后台
-            </NavBar>
+        <div className="flex flex-col h-screen">
+          {/* 顶部导航栏 */}
+          <NavBar 
+            right={<span onClick={handleLogout} className="text-primary">退出登录</span>}
+            backArrow={false}
+          >
+            管理员后台
+          </NavBar>
 
-            {/* 数据表格 */}
-            <div className="flex-1 overflow-auto">
-              <AdminTable />
-            </div>
+          {/* 数据表格 */}
+          <div className="flex-1 overflow-auto">
+            <AdminTable />
           </div>
-        ) : (
-          <AdminLogin />
-        )}
+        </div>
         <SafeArea position='bottom' />
       </main>
     </>

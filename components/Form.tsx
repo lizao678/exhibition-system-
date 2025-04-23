@@ -110,9 +110,11 @@ export default function Form() {
         window.location.href = `/info?id=${result.id}`;
       }, 1500);
     } catch (error) {
+      console.error('提交失败:', error);
       Toast.show({
         icon: 'fail',
         content: '提交失败，请稍后重试',
+        duration: 2000,
       });
     } finally {
       setIsSubmitting(false);
