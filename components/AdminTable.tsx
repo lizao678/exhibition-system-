@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { useRouter } from 'next/router';
@@ -61,7 +61,7 @@ export default function AdminTable() {
   const PAGE_SIZE = 10;
 
   // 加载数据
-  const loadData = async (isLoadMore = false) => {
+  const loadData = useCallback(async (isLoadMore = false) => {
     try {
       setIsLoading(true);
       setError('');
@@ -120,7 +120,7 @@ export default function AdminTable() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchText, dateRange, router]);
 
   // 删除数据
   const handleDelete = async (id: number) => {
@@ -289,13 +289,19 @@ export default function AdminTable() {
 
   // 搜索和日期筛选防抖
   useEffect(() => {
+    let isMounted = true;
     const timer = setTimeout(() => {
-      pageRef.current = 1;
-      loadData();
+      if (isMounted) {
+        pageRef.current = 1;
+        loadData();
+      }
     }, 300);
 
-    return () => clearTimeout(timer);
-  }, [searchText, dateRange]);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [searchText, dateRange, loadData]);
 
   // 加载更多
   const loadMore = async () => {
