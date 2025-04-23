@@ -1,9 +1,23 @@
-import { useState, useEffect } from 'react';
-import { DateRange } from 'react-date-range';
+import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import Modal from './Modal';
 import { useRouter } from 'next/router';
+import { 
+  List, 
+  SwipeAction, 
+  Dialog, 
+  Toast, 
+  Button, 
+  SearchBar, 
+  Card,
+  InfiniteScroll,
+  Space,
+  Tag,
+  Empty,
+  DatePicker,
+  Grid
+} from 'antd-mobile';
+import { CalendarOutline } from 'antd-mobile-icons';
 
 // 数据类型
 interface TableData {
@@ -19,67 +33,61 @@ interface TableData {
   shijiGuihuanRiqi?: string;
 }
 
-// 筛选条件类型
-interface FilterConditions {
-  search: string;
-  dateRange: {
-    startDate: Date;
-    endDate: Date;
-    key: string;
-  }[];
+// 分页数据类型
+interface PaginatedData {
+  list: TableData[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 export default function AdminTable() {
   const router = useRouter();
   const [data, setData] = useState<TableData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState('');
-  const [filters, setFilters] = useState<FilterConditions>({
-    search: '',
-    dateRange: [
-      {
-        startDate: new Date(),
-        endDate: new Date(),
-        key: 'selection',
-      },
-    ],
+  const [searchText, setSearchText] = useState('');
+  const [dateRange, setDateRange] = useState<{
+    startDate: Date | null;
+    endDate: Date | null;
+  }>({
+    startDate: null,
+    endDate: null,
   });
-
-  // 删除确认弹窗状态
-  const [deleteModal, setDeleteModal] = useState({
-    isOpen: false,
-    id: 0,
-  });
-
-  // 归还确认弹窗状态
-  const [returnModal, setReturnModal] = useState({
-    isOpen: false,
-    id: 0,
-  });
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+  const pageRef = useRef(1);
+  const PAGE_SIZE = 10;
 
   // 加载数据
-  const loadData = async () => {
+  const loadData = async (isLoadMore = false) => {
     try {
       setIsLoading(true);
       setError('');
 
-      // 获取 token
       const token = localStorage.getItem('adminToken');
       if (!token) {
-        router.push('/admin');
+        router.push('/login');
         return;
       }
 
       // 构建查询参数
-      const params = new URLSearchParams();
-      if (filters.search) {
-        params.append('search', filters.search);
+      const params = new URLSearchParams({
+        page: pageRef.current.toString(),
+        pageSize: PAGE_SIZE.toString(),
+      });
+      
+      if (searchText) {
+        params.append('search', searchText);
       }
-      if (filters.dateRange[0].startDate) {
-        params.append('startDate', filters.dateRange[0].startDate.toISOString());
+
+      // 添加日期范围参数
+      if (dateRange.startDate) {
+        params.append('startDate', dateRange.startDate.toISOString());
       }
-      if (filters.dateRange[0].endDate) {
-        params.append('endDate', filters.dateRange[0].endDate.toISOString());
+      if (dateRange.endDate) {
+        params.append('endDate', dateRange.endDate.toISOString());
       }
 
       // 发送请求
@@ -93,10 +101,22 @@ export default function AdminTable() {
         throw new Error('获取数据失败');
       }
 
-      const result = await response.json();
-      setData(result);
+      const result: PaginatedData = await response.json();
+      
+      if (isLoadMore) {
+        setData(prev => [...prev, ...result.list]);
+      } else {
+        setData(result.list);
+      }
+      
+      setHasMore(result.list.length === PAGE_SIZE);
+      
     } catch (error) {
-      setError('加载数据失败，请稍后重试');
+      Toast.show({
+        icon: 'fail',
+        content: '加载数据失败',
+      });
+      setError('加载数据失败');
     } finally {
       setIsLoading(false);
     }
@@ -107,11 +127,17 @@ export default function AdminTable() {
     try {
       const token = localStorage.getItem('adminToken');
       if (!token) {
-        router.push('/admin');
+        router.push('/login');
         return;
       }
 
-      const response = await fetch('/api/admin/data', {
+      const result = await Dialog.confirm({
+        content: '确定要删除这条记录吗？',
+      });
+
+      if (!result) return;
+
+      const response = await fetch('/api/form/delete', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -124,10 +150,20 @@ export default function AdminTable() {
         throw new Error('删除失败');
       }
 
-      // 重新加载数据
-      loadData();
+      Toast.show({
+        icon: 'success',
+        content: '删除成功',
+      });
+
+      // 重置数据
+      pageRef.current = 1;
+      await loadData();
+      
     } catch (error) {
-      setError('删除失败，请稍后重试');
+      Toast.show({
+        icon: 'fail',
+        content: '删除失败',
+      });
     }
   };
 
@@ -136,12 +172,18 @@ export default function AdminTable() {
     try {
       const token = localStorage.getItem('adminToken');
       if (!token) {
-        router.push('/admin');
+        router.push('/login');
         return;
       }
 
-      const response = await fetch('/api/admin/return', {
-        method: 'POST',
+      const result = await Dialog.confirm({
+        content: '确认归还样衣？',
+      });
+
+      if (!result) return;
+
+      const response = await fetch('/api/form/update', {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -156,10 +198,20 @@ export default function AdminTable() {
         throw new Error('更新失败');
       }
 
-      // 重新加载数据
-      loadData();
+      Toast.show({
+        icon: 'success',
+        content: '归还成功',
+      });
+
+      // 重置数据
+      pageRef.current = 1;
+      await loadData();
+      
     } catch (error) {
-      setError('更新失败，请稍后重试');
+      Toast.show({
+        icon: 'fail',
+        content: '归还失败',
+      });
     }
   };
 
@@ -168,23 +220,28 @@ export default function AdminTable() {
     try {
       const token = localStorage.getItem('adminToken');
       if (!token) {
-        router.push('/admin');
+        router.push('/login');
         return;
       }
 
       // 构建查询参数
       const params = new URLSearchParams();
-      if (filters.search) {
-        params.append('search', filters.search);
+      if (searchText) {
+        params.append('search', searchText);
       }
-      if (filters.dateRange[0].startDate) {
-        params.append('startDate', filters.dateRange[0].startDate.toISOString());
+      if (dateRange.startDate) {
+        params.append('startDate', dateRange.startDate.toISOString());
       }
-      if (filters.dateRange[0].endDate) {
-        params.append('endDate', filters.dateRange[0].endDate.toISOString());
+      if (dateRange.endDate) {
+        params.append('endDate', dateRange.endDate.toISOString());
       }
 
-      // 发送请求
+      Toast.show({
+        icon: 'loading',
+        content: '正在导出...',
+        duration: 0,
+      });
+
       const response = await fetch(`/api/admin/export?${params.toString()}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -205,19 +262,47 @@ export default function AdminTable() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+
+      Toast.clear();
+      Toast.show({
+        icon: 'success',
+        content: '导出成功',
+      });
     } catch (error) {
-      setError('导出失败，请稍后重试');
+      Toast.clear();
+      Toast.show({
+        icon: 'fail',
+        content: '导出失败',
+      });
     }
   };
 
-  // 搜索防抖
+  // 清除日期筛选
+  const handleClearDateFilter = () => {
+    setDateRange({
+      startDate: null,
+      endDate: null,
+    });
+    pageRef.current = 1;
+    loadData();
+  };
+
+  // 搜索和日期筛选防抖
   useEffect(() => {
     const timer = setTimeout(() => {
+      pageRef.current = 1;
       loadData();
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [filters]);
+  }, [searchText, dateRange]);
+
+  // 加载更多
+  const loadMore = async () => {
+    if (isLoading) return;
+    pageRef.current += 1;
+    await loadData(true);
+  };
 
   // 格式化日期
   const formatDate = (dateString: string) => {
@@ -225,192 +310,167 @@ export default function AdminTable() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* 搜索和筛选 */}
-      <div className="mb-6 space-y-4">
-        <div className="flex space-x-4">
-          <input
-            type="text"
-            placeholder="搜索姓名/部门/样衣编号"
-            className="input flex-1"
-            value={filters.search}
-            onChange={(e) =>
-              setFilters({ ...filters, search: e.target.value })
-            }
-          />
-          <DateRange
-            onChange={(item) =>
-              setFilters({
-                ...filters,
-                dateRange: [item.selection],
-              })
-            }
-            moveRangeOnFirstSelection={false}
-            months={1}
-            ranges={filters.dateRange}
-            direction="horizontal"
-            locale={zhCN}
-          />
+    <div className="pb-safe">
+      {/* 搜索栏和筛选区域 */}
+      <div className="sticky top-0 z-10 bg-white">
+        <SearchBar
+          placeholder="搜索姓名/部门/样衣编号"
+          value={searchText}
+          onChange={setSearchText}
+          style={{ '--background': '#f5f5f5' }}
+        />
+        
+        {/* 时间筛选 */}
+        <div className="px-2 py-3">
+          <Grid columns={2} gap={8}>
+            <Grid.Item>
+              <div
+                className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                onClick={() => setShowStartPicker(true)}
+              >
+                <div className="text-sm text-gray-600">
+                  {dateRange.startDate
+                    ? format(dateRange.startDate, 'yyyy-MM-dd')
+                    : '开始日期'}
+                </div>
+                <CalendarOutline />
+              </div>
+            </Grid.Item>
+            <Grid.Item>
+              <div
+                className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                onClick={() => setShowEndPicker(true)}
+              >
+                <div className="text-sm text-gray-600">
+                  {dateRange.endDate
+                    ? format(dateRange.endDate, 'yyyy-MM-dd')
+                    : '结束日期'}
+                </div>
+                <CalendarOutline />
+              </div>
+            </Grid.Item>
+          </Grid>
+          
+          {(dateRange.startDate || dateRange.endDate) && (
+            <Button
+              block
+              fill="none"
+              className="mt-2"
+              onClick={handleClearDateFilter}
+            >
+              清除日期筛选
+            </Button>
+          )}
+          
+          <Button 
+            block 
+            color="primary" 
+            className="mt-2"
+            onClick={handleExport}
+          >
+            导出数据
+          </Button>
         </div>
       </div>
 
-      {/* 错误提示 */}
-      {error && <p className="error text-center mb-4">{error}</p>}
+      {/* 日期选择器 */}
+      <DatePicker
+        visible={showStartPicker}
+        onClose={() => setShowStartPicker(false)}
+        precision="day"
+        onConfirm={(val) => {
+          setDateRange(prev => ({
+            ...prev,
+            startDate: val,
+          }));
+        }}
+        max={dateRange.endDate || undefined}
+      />
+      <DatePicker
+        visible={showEndPicker}
+        onClose={() => setShowEndPicker(false)}
+        precision="day"
+        onConfirm={(val) => {
+          setDateRange(prev => ({
+            ...prev,
+            endDate: val,
+          }));
+        }}
+        min={dateRange.startDate || undefined}
+      />
 
-      {/* 数据表格 */}
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ID
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                姓名
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                部门
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                进入日期
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                事由
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                样衣信息
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                提交时间
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                操作
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {isLoading ? (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="px-6 py-4 text-center text-gray-500"
-                >
-                  加载中...
-                </td>
-              </tr>
-            ) : data.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="px-6 py-4 text-center text-gray-500"
-                >
-                  暂无数据
-                </td>
-              </tr>
-            ) : (
-              data.map((item) => (
-                <tr key={item.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {item.id}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.xingming}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.bumen}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatDate(item.jinruRiqi)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.shiyou}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.jieyongYangyi ? (
+      {/* 数据列表 */}
+      {data.length > 0 ? (
+        <List>
+          {data.map((item) => (
+            <SwipeAction
+              key={item.id}
+              rightActions={[
+                {
+                  key: 'delete',
+                  text: '删除',
+                  color: 'danger',
+                  onClick: () => handleDelete(item.id),
+                },
+                ...(item.jieyongYangyi && !item.shijiGuihuanRiqi
+                  ? [
+                      {
+                        key: 'return',
+                        text: '归还',
+                        color: 'primary',
+                        onClick: () => handleReturn(item.id),
+                      },
+                    ]
+                  : []),
+              ]}
+            >
+              <List.Item>
+                <Card>
+                  <Space direction="vertical" block>
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-medium">{item.xingming}</span>
+                      <span className="text-gray-500">{item.bumen}</span>
+                    </div>
+                    <div>
+                      进入时间：{formatDate(item.jinruRiqi)}
+                    </div>
+                    <div>事由：{item.shiyou}</div>
+                    {item.jieyongYangyi && (
                       <>
-                        <div>编号：{item.yangyiBianhao}</div>
+                        <div>样衣编号：{item.yangyiBianhao}</div>
                         <div>
                           预计归还：
                           {item.yujiGuihuanRiqi
                             ? formatDate(item.yujiGuihuanRiqi)
                             : '未设置'}
                         </div>
-                        {item.shijiGuihuanRiqi && (
-                          <div>
-                            实际归还：
-                            {formatDate(item.shijiGuihuanRiqi)}
-                          </div>
-                        )}
+                        <div>
+                          实际归还：
+                          {item.shijiGuihuanRiqi ? (
+                            <Tag color="success">
+                              {formatDate(item.shijiGuihuanRiqi)}
+                            </Tag>
+                          ) : (
+                            <Tag color="warning">未归还</Tag>
+                          )}
+                        </div>
                       </>
-                    ) : (
-                      '未借用'
                     )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatDate(item.tijiaoRiqi)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="flex space-x-2">
-                      <button
-                        className="text-red-600 hover:text-red-900"
-                        onClick={() =>
-                          setDeleteModal({ isOpen: true, id: item.id })
-                        }
-                      >
-                        删除
-                      </button>
-                      {item.jieyongYangyi && !item.shijiGuihuanRiqi && (
-                        <button
-                          className="text-primary-600 hover:text-primary-900"
-                          onClick={() =>
-                            setReturnModal({ isOpen: true, id: item.id })
-                          }
-                        >
-                          归还
-                        </button>
-                      )}
+                    <div className="text-gray-400 text-sm">
+                      提交时间：{formatDate(item.tijiaoRiqi)}
                     </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                  </Space>
+                </Card>
+              </List.Item>
+            </SwipeAction>
+          ))}
+        </List>
+      ) : (
+        <Empty description="暂无数据" />
+      )}
 
-      {/* 导出按钮 */}
-      <div className="fixed bottom-8 right-8">
-        <button
-          className="btn btn-primary"
-          onClick={handleExport}
-          disabled={isLoading}
-        >
-          导出为 Excel
-        </button>
-      </div>
-
-      {/* 删除确认弹窗 */}
-      <Modal
-        isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ isOpen: false, id: 0 })}
-        title="确认删除"
-        confirmText="删除"
-        onConfirm={() => handleDelete(deleteModal.id)}
-        isDestructive
-      >
-        确定要删除这条记录吗？此操作不可恢复。
-      </Modal>
-
-      {/* 归还确认弹窗 */}
-      <Modal
-        isOpen={returnModal.isOpen}
-        onClose={() => setReturnModal({ isOpen: false, id: 0 })}
-        title="确认归还"
-        confirmText="确认"
-        onConfirm={() => handleReturn(returnModal.id)}
-      >
-        确定要将这件样衣标记为已归还吗？
-      </Modal>
+      {/* 无限滚动 */}
+      <InfiniteScroll loadMore={loadMore} hasMore={hasMore} />
     </div>
   );
 } 
