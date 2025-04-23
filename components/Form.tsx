@@ -1,34 +1,43 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { DateRange } from 'react-date-range';
-import { format } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+import {
+  Form as AntdForm,
+  Input,
+  TextArea,
+  Radio,
+  Button,
+  Toast,
+  DatePicker,
+  Space,
+} from 'antd-mobile';
+import { 
+  UserOutline, 
+  TeamOutline, 
+  CalendarOutline, 
+  ClockCircleOutline 
+} from 'antd-mobile-icons';
+import dayjs from 'dayjs';
+import 'dayjs/locale/zh-cn';
+
+// 配置 dayjs
+dayjs.locale('zh-cn');
 
 // 表单数据类型
 interface FormData {
   xingming: string;
   bumen: string;
-  jinruRiqi: Date;
   shiyou: string;
   jieyongYangyi: boolean;
   yangyiBianhao?: string;
-  yujiGuihuanRiqi?: Date;
 }
 
 export default function Form() {
   // 表单状态
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-
-  // 日期范围状态
-  const [dateRange, setDateRange] = useState([
-    {
-      startDate: new Date(),
-      endDate: new Date(),
-      key: 'selection',
-    },
-  ]);
+  const [jinruRiqi, setJinruRiqi] = useState<Date>(new Date());
+  const [jinruVisible, setJinruVisible] = useState(false);
+  const [yujiGuihuanRiqi, setYujiGuihuanRiqi] = useState<Date | null>(null);
+  const [guihuanVisible, setGuihuanVisible] = useState(false);
 
   // 表单处理
   const {
@@ -36,6 +45,8 @@ export default function Form() {
     handleSubmit,
     watch,
     formState: { errors },
+    setValue,
+    getValues
   } = useForm<FormData>({
     defaultValues: {
       jieyongYangyi: false,
@@ -49,7 +60,26 @@ export default function Form() {
   const onSubmit = async (data: FormData) => {
     try {
       setIsSubmitting(true);
-      setSubmitError('');
+
+      // 检查必填项
+      if (!data.xingming || !data.bumen || !data.shiyou) {
+        Toast.show({
+          icon: 'fail',
+          content: '请填写所有必填字段',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 检查样衣相关项
+      if (data.jieyongYangyi && (!data.yangyiBianhao || !yujiGuihuanRiqi)) {
+        Toast.show({
+          icon: 'fail',
+          content: '借用样衣时，样衣编号和预计归还时间不能为空',
+        });
+        setIsSubmitting(false);
+        return;
+      }
 
       // 发送表单数据
       const response = await fetch('/api/form/submit', {
@@ -59,8 +89,8 @@ export default function Form() {
         },
         body: JSON.stringify({
           ...data,
-          jinruRiqi: dateRange[0].startDate,
-          yujiGuihuanRiqi: data.jieyongYangyi ? dateRange[0].endDate : null,
+          jinruRiqi,
+          yujiGuihuanRiqi: data.jieyongYangyi ? yujiGuihuanRiqi : null,
         }),
       });
 
@@ -69,150 +99,151 @@ export default function Form() {
       }
 
       const result = await response.json();
-      setSubmitSuccess(true);
+      
+      Toast.show({
+        icon: 'success',
+        content: '提交成功',
+      });
 
       // 跳转到信息页面
-      window.location.href = `/info?id=${result.id}`;
+      setTimeout(() => {
+        window.location.href = `/info?id=${result.id}`;
+      }, 1500);
     } catch (error) {
-      setSubmitError('提交失败，请稍后重试');
+      Toast.show({
+        icon: 'fail',
+        content: '提交失败，请稍后重试',
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold text-center mb-8">展厅进出登记</h1>
+    <div className="page-container">
+      <h1 className="page-title">展厅进出登记</h1>
 
-      {/* 姓名 */}
-      <div>
-        <label htmlFor="xingming" className="label">
-          姓名
-        </label>
-        <input
-          id="xingming"
-          type="text"
-          className="input"
-          {...register('xingming', { required: '请输入姓名' })}
-        />
-        {errors.xingming && <p className="error">{errors.xingming.message}</p>}
+      <AntdForm
+        layout='horizontal'
+        footer={
+          <Button 
+            block 
+            color='primary' 
+            size='large' 
+            loading={isSubmitting}
+            onClick={() => handleSubmit(onSubmit)()}
+          >
+            提交
+          </Button>
+        }
+      >
+        {/* 姓名 */}
+        <AntdForm.Item label='姓名' required>
+          <Input 
+            placeholder='请输入姓名' 
+            onChange={(val) => setValue('xingming', val)}
+          />
+          {errors.xingming && <div className="error-text">请输入姓名</div>}
+        </AntdForm.Item>
+
+        {/* 部门 */}
+        <AntdForm.Item label='部门' required>
+          <Input 
+            placeholder='请输入部门' 
+            onChange={(val) => setValue('bumen', val)}
+          />
+          {errors.bumen && <div className="error-text">请输入部门</div>}
+        </AntdForm.Item>
+
+        {/* 进入日期 */}
+        <AntdForm.Item label='进入日期' required>
+          <Space align='center' block onClick={() => setJinruVisible(true)}>
+            <CalendarOutline />
+            <span style={{ color: jinruRiqi ? 'inherit' : '#ccc' }}>
+              {jinruRiqi ? dayjs(jinruRiqi).format('YYYY年MM月DD日') : '请选择进入日期'}
+            </span>
+          </Space>
+          <DatePicker
+            visible={jinruVisible}
+            onClose={() => setJinruVisible(false)}
+            precision='day'
+            defaultValue={jinruRiqi}
+            onConfirm={(val) => {
+              setJinruRiqi(val);
+              setJinruVisible(false);
+            }}
+            min={new Date('2023-01-01')}
+            max={new Date('2025-12-31')}
+          />
+        </AntdForm.Item>
+
+        {/* 事由 */}
+        <AntdForm.Item label='事由' required>
+          <TextArea 
+            placeholder='请输入事由' 
+            rows={3}
+            onChange={(val) => setValue('shiyou', val)}
+          />
+          {errors.shiyou && <div className="error-text">请输入事由</div>}
+        </AntdForm.Item>
+
+        {/* 是否借用样衣 */}
+        <AntdForm.Item label='是否借用样衣'>
+          <Radio.Group
+            onChange={(val) => setValue('jieyongYangyi', val === 'true')}
+            defaultValue={getValues('jieyongYangyi') ? 'true' : 'false'}
+          >
+            <Space>
+              <Radio value='false'>否</Radio>
+              <Radio value='true'>是</Radio>
+            </Space>
+          </Radio.Group>
+        </AntdForm.Item>
+
+        {/* 样衣相关字段 */}
+        {jieyongYangyi && (
+          <>
+            {/* 样衣编号 */}
+            <AntdForm.Item label='样衣编号' required>
+              <Input 
+                placeholder='请输入样衣编号' 
+                onChange={(val) => setValue('yangyiBianhao', val)}
+              />
+              {errors.yangyiBianhao && <div className="error-text">请输入样衣编号</div>}
+            </AntdForm.Item>
+
+            {/* 预计归还时间 */}
+            <AntdForm.Item label='归还时间' required>
+              <Space align='center' block onClick={() => setGuihuanVisible(true)}>
+                <ClockCircleOutline />
+                <span style={{ color: yujiGuihuanRiqi ? 'inherit' : '#ccc' }}>
+                  {yujiGuihuanRiqi 
+                    ? dayjs(yujiGuihuanRiqi).format('YYYY年MM月DD日') 
+                    : '请选择预计归还时间'}
+                </span>
+              </Space>
+              <DatePicker
+                visible={guihuanVisible}
+                onClose={() => setGuihuanVisible(false)}
+                precision='day'
+                defaultValue={yujiGuihuanRiqi || new Date()}
+                onConfirm={(val) => {
+                  setYujiGuihuanRiqi(val);
+                  setGuihuanVisible(false);
+                }}
+                min={new Date()}
+                max={new Date(new Date().setFullYear(new Date().getFullYear() + 1))}
+              />
+            </AntdForm.Item>
+          </>
+        )}
+      </AntdForm>
+
+      {/* 底部说明 */}
+      <div className="mt-8 text-xs text-gray-500 text-center px-4">
+        <p>提交后，系统将自动发送邮件通知管理员</p>
+        <p>© {new Date().getFullYear()} 展厅进出登记系统</p>
       </div>
-
-      {/* 部门 */}
-      <div>
-        <label htmlFor="bumen" className="label">
-          部门
-        </label>
-        <input
-          id="bumen"
-          type="text"
-          className="input"
-          {...register('bumen', { required: '请输入部门' })}
-        />
-        {errors.bumen && <p className="error">{errors.bumen.message}</p>}
-      </div>
-
-      {/* 进入日期 */}
-      <div>
-        <label className="label">进入日期</label>
-        <DateRange
-          onChange={(item) => setDateRange([item.selection])}
-          moveRangeOnFirstSelection={false}
-          months={1}
-          ranges={dateRange}
-          direction="horizontal"
-          locale={zhCN}
-        />
-      </div>
-
-      {/* 事由 */}
-      <div>
-        <label htmlFor="shiyou" className="label">
-          事由
-        </label>
-        <textarea
-          id="shiyou"
-          className="input"
-          rows={3}
-          {...register('shiyou', { required: '请输入事由' })}
-        />
-        {errors.shiyou && <p className="error">{errors.shiyou.message}</p>}
-      </div>
-
-      {/* 是否借用样衣 */}
-      <div>
-        <label className="label">是否借用样衣</label>
-        <div className="flex items-center space-x-4">
-          <label className="inline-flex items-center">
-            <input
-              type="radio"
-              className="form-radio"
-              value="false"
-              {...register('jieyongYangyi')}
-            />
-            <span className="ml-2">否</span>
-          </label>
-          <label className="inline-flex items-center">
-            <input
-              type="radio"
-              className="form-radio"
-              value="true"
-              {...register('jieyongYangyi')}
-            />
-            <span className="ml-2">是</span>
-          </label>
-        </div>
-      </div>
-
-      {/* 样衣相关字段 */}
-      {jieyongYangyi && (
-        <>
-          {/* 样衣编号 */}
-          <div>
-            <label htmlFor="yangyiBianhao" className="label">
-              样衣编号
-            </label>
-            <input
-              id="yangyiBianhao"
-              type="text"
-              className="input"
-              {...register('yangyiBianhao')}
-            />
-          </div>
-
-          {/* 预计归还时间 */}
-          <div>
-            <label className="label">预计归还时间</label>
-            <DateRange
-              onChange={(item) => setDateRange([item.selection])}
-              moveRangeOnFirstSelection={false}
-              months={1}
-              ranges={dateRange}
-              direction="horizontal"
-              locale={zhCN}
-            />
-          </div>
-        </>
-      )}
-
-      {/* 提交按钮 */}
-      <div className="flex justify-center">
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? '提交中...' : '提交'}
-        </button>
-      </div>
-
-      {/* 错误提示 */}
-      {submitError && <p className="error text-center">{submitError}</p>}
-
-      {/* 成功提示 */}
-      {submitSuccess && (
-        <p className="text-green-600 text-center">提交成功，正在跳转...</p>
-      )}
-    </form>
+    </div>
   );
 } 

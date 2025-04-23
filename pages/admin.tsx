@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import AdminLogin from '../components/AdminLogin';
 import AdminTable from '../components/AdminTable';
+import { NavBar, DotLoading, SafeArea } from 'antd-mobile';
 
 export default function Admin() {
   const router = useRouter();
@@ -36,42 +37,33 @@ export default function Admin() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="min-h-screen bg-gray-50">
+      <main className="bg-white min-h-screen">
         {isLoading ? (
           <div className="flex items-center justify-center min-h-screen">
-            <div className="text-gray-500">加载中...</div>
+            <div className="text-center">
+              <DotLoading color='primary' />
+              <div className="mt-2 text-gray-500">加载中...</div>
+            </div>
           </div>
         ) : isAuthenticated ? (
-          <div>
+          <div className="flex flex-col h-screen">
             {/* 顶部导航栏 */}
-            <nav className="bg-white shadow">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between h-16">
-                  <div className="flex">
-                    <div className="flex-shrink-0 flex items-center">
-                      <h1 className="text-xl font-bold text-gray-900">
-                        展厅进出系统管理后台
-                      </h1>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <button
-                      onClick={handleLogout}
-                      className="btn btn-secondary"
-                    >
-                      退出登录
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </nav>
+            <NavBar 
+              right={<span onClick={handleLogout} className="text-primary">退出登录</span>}
+              backArrow={false}
+            >
+              管理员后台
+            </NavBar>
 
             {/* 数据表格 */}
-            <AdminTable />
+            <div className="flex-1 overflow-auto">
+              <AdminTable />
+            </div>
           </div>
         ) : (
           <AdminLogin />
         )}
+        <SafeArea position='bottom' />
       </main>
     </>
   );

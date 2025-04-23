@@ -2,6 +2,7 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
 import InfoDisplay from '../components/InfoDisplay';
+import { DotLoading, SafeArea, Result } from 'antd-mobile';
 
 // 数据类型
 interface InfoData {
@@ -59,16 +60,30 @@ export default function Info() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="min-h-screen bg-gray-50 py-8">
+      <main className="bg-white min-h-screen">
         {isLoading ? (
-          <div className="text-center text-gray-500">加载中...</div>
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <DotLoading color='primary' />
+              <div className="mt-2 text-gray-500">加载中...</div>
+            </div>
+          </div>
         ) : error ? (
-          <div className="text-center text-red-500">{error}</div>
+          <Result
+            status='error'
+            title='加载失败'
+            description={error}
+          />
         ) : !data ? (
-          <div className="text-center text-gray-500">记录不存在</div>
+          <Result
+            status='info'
+            title='记录不存在'
+            description='未找到相关信息，请检查链接是否正确'
+          />
         ) : (
           <InfoDisplay data={data} />
         )}
+        <SafeArea position='bottom' />
       </main>
     </>
   );

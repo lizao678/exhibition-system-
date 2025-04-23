@@ -1,5 +1,6 @@
 import Form from '../components/Form';
 import Head from 'next/head';
+import { SafeArea } from 'antd-mobile';
 
 export default function Home() {
   return (
@@ -11,8 +12,9 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="min-h-screen bg-gray-50">
+      <main className="bg-white min-h-screen">
         <Form />
+        <SafeArea position='bottom' />
       </main>
     </>
   );

@@ -1,5 +1,17 @@
-import { format } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+import dayjs from 'dayjs';
+import 'dayjs/locale/zh-cn';
+import {
+  Card,
+  Space,
+  Divider,
+  Button,
+  List,
+  Tag
+} from 'antd-mobile';
+import { LeftOutline } from 'antd-mobile-icons';
+
+// 配置 dayjs
+dayjs.locale('zh-cn');
 
 // 信息数据类型
 interface InfoData {
@@ -22,86 +34,79 @@ interface InfoDisplayProps {
 export default function InfoDisplay({ data }: InfoDisplayProps) {
   // 格式化日期
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'yyyy年MM月dd日 HH:mm', { locale: zhCN });
+    return dayjs(dateString).format('YYYY年MM月DD日 HH:mm');
+  };
+
+  // 处理返回首页
+  const handleReturn = () => {
+    window.location.href = '/';
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold text-center mb-8">展厅进出信息</h1>
+    <div className="px-4 py-6">
+      <h1 className="page-title">展厅进出信息</h1>
 
-      <div className="bg-white shadow rounded-lg p-6 space-y-4">
-        {/* 基本信息 */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-gray-600">姓名</p>
-            <p className="font-medium">{data.xingming}</p>
-          </div>
-          <div>
-            <p className="text-gray-600">部门</p>
-            <p className="font-medium">{data.bumen}</p>
-          </div>
-          <div>
-            <p className="text-gray-600">进入日期</p>
-            <p className="font-medium">{formatDate(data.jinruRiqi)}</p>
-          </div>
-          <div>
-            <p className="text-gray-600">事由</p>
-            <p className="font-medium">{data.shiyou}</p>
-          </div>
-        </div>
+      <Card>
+        <Space block direction='vertical' style={{ width: '100%' }}>
+          {/* 基本信息 */}
+          <List header='基本信息'>
+            <List.Item extra={data.xingming}>姓名</List.Item>
+            <List.Item extra={data.bumen}>部门</List.Item>
+            <List.Item extra={formatDate(data.jinruRiqi)}>进入日期</List.Item>
+            <List.Item extra={data.shiyou}>事由</List.Item>
+          </List>
 
-        {/* 样衣信息 */}
-        <div className="border-t pt-4">
-          <h2 className="text-lg font-semibold mb-4">样衣信息</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-gray-600">是否借用样衣</p>
-              <p className="font-medium">{data.jieyongYangyi ? '是' : '否'}</p>
-            </div>
+          {/* 样衣信息 */}
+          <List header='样衣信息'>
+            <List.Item extra={data.jieyongYangyi ? 
+              <Tag color='primary'>是</Tag> : 
+              <Tag color='default'>否</Tag>
+            }>
+              是否借用样衣
+            </List.Item>
+            
             {data.jieyongYangyi && (
               <>
-                <div>
-                  <p className="text-gray-600">样衣编号</p>
-                  <p className="font-medium">{data.yangyiBianhao || '未填写'}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600">预计归还时间</p>
-                  <p className="font-medium">
-                    {data.yujiGuihuanRiqi ? formatDate(data.yujiGuihuanRiqi) : '未填写'}
-                  </p>
-                </div>
+                <List.Item extra={data.yangyiBianhao || '未填写'}>
+                  样衣编号
+                </List.Item>
+                <List.Item extra={data.yujiGuihuanRiqi ? formatDate(data.yujiGuihuanRiqi) : '未填写'}>
+                  预计归还时间
+                </List.Item>
                 {data.shijiGuihuanRiqi && (
-                  <div>
-                    <p className="text-gray-600">实际归还时间</p>
-                    <p className="font-medium">{formatDate(data.shijiGuihuanRiqi)}</p>
-                  </div>
+                  <List.Item extra={formatDate(data.shijiGuihuanRiqi)}>
+                    实际归还时间
+                  </List.Item>
                 )}
               </>
             )}
-          </div>
-        </div>
+          </List>
 
-        {/* 时间信息 */}
-        <div className="border-t pt-4">
-          <h2 className="text-lg font-semibold mb-4">时间信息</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-gray-600">提交时间</p>
-              <p className="font-medium">{formatDate(data.tijiaoRiqi)}</p>
-            </div>
-          </div>
-        </div>
+          {/* 时间信息 */}
+          <List header='时间信息'>
+            <List.Item extra={formatDate(data.tijiaoRiqi)}>
+              提交时间
+            </List.Item>
+          </List>
+          
+          <Divider />
 
-        {/* 返回按钮 */}
-        <div className="border-t pt-6 flex justify-center">
-          <a
-            href="/"
-            className="btn btn-secondary"
-          >
-            返回首页
-          </a>
-        </div>
-      </div>
+          {/* 返回按钮 */}
+          <div className="flex justify-center mt-4">
+            <Button 
+              color='primary' 
+              onClick={handleReturn}
+              size='middle'
+              block
+            >
+              <Space>
+                <LeftOutline />
+                <span>返回首页</span>
+              </Space>
+            </Button>
+          </div>
+        </Space>
+      </Card>
     </div>
   );
 } 

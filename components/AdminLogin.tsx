@@ -1,6 +1,18 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/router';
+import {
+  Form,
+  Input,
+  Button,
+  Toast,
+  Space,
+  Card,
+} from 'antd-mobile';
+import {
+  UserOutline,
+  LockOutline,
+} from 'antd-mobile-icons';
 
 // 登录表单数据类型
 interface LoginData {
@@ -11,20 +23,29 @@ interface LoginData {
 export default function AdminLogin() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
 
   // 表单处理
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<LoginData>();
 
   // 提交处理
   const onSubmit = async (data: LoginData) => {
     try {
       setIsSubmitting(true);
-      setError('');
+
+      // 检查必填项
+      if (!data.yonghuming || !data.mima) {
+        Toast.show({
+          icon: 'fail',
+          content: '请输入用户名和密码',
+        });
+        setIsSubmitting(false);
+        return;
+      }
 
       // 发送登录请求
       const response = await fetch('/api/auth/login', {
@@ -44,72 +65,78 @@ export default function AdminLogin() {
       // 保存 token
       localStorage.setItem('adminToken', result.token);
 
+      Toast.show({
+        icon: 'success',
+        content: '登录成功',
+      });
+
       // 跳转到管理页面
-      router.push('/admin');
+      setTimeout(() => {
+        router.push('/admin');
+      }, 1000);
     } catch (error) {
-      setError('登录失败，请检查用户名和密码');
+      Toast.show({
+        icon: 'fail',
+        content: '登录失败，请检查用户名和密码',
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            管理员登录
-          </h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          <div className="rounded-md shadow-sm -space-y-px">
+    <div className="flex items-center justify-center min-h-screen p-4">
+      <Card className="w-full max-w-md">
+        <Space block direction="vertical" style={{ width: '100%' }}>
+          <h2 className="text-center text-2xl font-bold mb-8">管理员登录</h2>
+          
+          <Form
+            layout="vertical"
+            footer={
+              <Button
+                block
+                color="primary"
+                size="large"
+                loading={isSubmitting}
+                onClick={() => handleSubmit(onSubmit)()}
+              >
+                登录
+              </Button>
+            }
+          >
             {/* 用户名 */}
-            <div>
-              <label htmlFor="yonghuming" className="sr-only">
-                用户名
-              </label>
-              <input
-                id="yonghuming"
-                type="text"
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                placeholder="用户名"
-                {...register('yonghuming', { required: '请输入用户名' })}
-              />
+            <Form.Item label="用户名" required>
+              <div className="flex items-center border border-gray-300 rounded-md px-3 py-2">
+                <UserOutline className="mr-2 text-gray-400" />
+                <Input
+                  placeholder="请输入用户名"
+                  clearable
+                  onChange={(val) => setValue('yonghuming', val)}
+                  className="border-0 p-0 w-full"
+                />
+              </div>
               {errors.yonghuming && (
-                <p className="error">{errors.yonghuming.message}</p>
+                <div className="error-text">请输入用户名</div>
               )}
-            </div>
+            </Form.Item>
+
             {/* 密码 */}
-            <div>
-              <label htmlFor="mima" className="sr-only">
-                密码
-              </label>
-              <input
-                id="mima"
-                type="password"
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                placeholder="密码"
-                {...register('mima', { required: '请输入密码' })}
-              />
-              {errors.mima && <p className="error">{errors.mima.message}</p>}
-            </div>
-          </div>
-
-          {/* 错误提示 */}
-          {error && <p className="error text-center">{error}</p>}
-
-          {/* 登录按钮 */}
-          <div>
-            <button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? '登录中...' : '登录'}
-            </button>
-          </div>
-        </form>
-      </div>
+            <Form.Item label="密码" required>
+              <div className="flex items-center border border-gray-300 rounded-md px-3 py-2">
+                <LockOutline className="mr-2 text-gray-400" />
+                <Input
+                  placeholder="请输入密码"
+                  clearable
+                  type="password"
+                  onChange={(val) => setValue('mima', val)}
+                  className="border-0 p-0 w-full"
+                />
+              </div>
+              {errors.mima && <div className="error-text">请输入密码</div>}
+            </Form.Item>
+          </Form>
+        </Space>
+      </Card>
     </div>
   );
 } 
