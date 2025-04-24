@@ -89,7 +89,6 @@ export default function InfoDisplay({ data }: InfoDisplayProps) {
             </List.Item>
           </List>
           
-          <Divider />
 
           {/* 返回按钮 */}
           <div className="flex justify-center mt-4">

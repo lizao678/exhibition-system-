@@ -9,6 +9,22 @@
   }
 }
 
+/* 全局容器样式 */
+#__next {
+    max-width: 750px;
+    margin: 0 auto;
+    position: relative;
+    min-height: 100vh;
+    background-color: #fff;
+  }
+  
+  /* 移动端适配 */
+  @media screen and (max-width: 750px) {
+    #__next {
+      width: 100%;
+    }
+  }
+
 /* 自定义组件样式 */
 @layer components {
   .btn {
