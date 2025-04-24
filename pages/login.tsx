@@ -91,8 +91,8 @@ export default function Login() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="bg-white min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+      <main className="bg-white min-h-screen p-4">
+        <Card className="">
           <Space block direction="vertical" style={{ width: '100%' }}>
             <h2 className="text-center text-2xl font-bold mb-8">管理员登录</h2>
             

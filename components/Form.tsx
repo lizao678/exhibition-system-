@@ -123,7 +123,6 @@ export default function Form() {
 
   return (
     <div className="page-container">
-      <h1 className="page-title">展厅进出登记</h1>
 
       <AntdForm
         layout='horizontal'

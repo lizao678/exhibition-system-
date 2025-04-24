@@ -85,7 +85,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4">
+    <div className="">
       <Card className="w-full max-w-md">
         <Space block direction="vertical" style={{ width: '100%' }}>
           <h2 className="text-center text-2xl font-bold mb-8">管理员登录</h2>
