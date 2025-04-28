@@ -176,41 +176,61 @@ export default function AdminTable() {
         return;
       }
 
-      const result = await Dialog.confirm({
-        content: '确认归还样衣？',
+      // 显示日期选择器
+      const result = await DatePicker.prompt({
+        title: '选择归还日期',
+        defaultValue: new Date(),
+        precision: 'day',
+        onConfirm: async (date) => {
+          try {
+            Toast.show({
+              icon: 'loading',
+              content: '正在处理...',
+              duration: 0,
+            });
+
+            const response = await fetch('/api/form/update', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                id,
+                shijiGuihuanRiqi: date.toISOString(),
+              }),
+            });
+
+            if (!response.ok) {
+              const error = await response.json();
+              throw new Error(error.message || '更新失败');
+            }
+
+            Toast.clear();
+            Toast.show({
+              icon: 'success',
+              content: '归还成功',
+            });
+
+            // 重置数据
+            pageRef.current = 1;
+            await loadData();
+          } catch (error) {
+            Toast.clear();
+            Toast.show({
+              icon: 'fail',
+              content: error instanceof Error ? error.message : '归还失败',
+            });
+          }
+        },
       });
 
       if (!result) return;
-
-      const response = await fetch('/api/form/update', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          id,
-          shijiGuihuanRiqi: new Date().toISOString(),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('更新失败');
-      }
-
-      Toast.show({
-        icon: 'success',
-        content: '归还成功',
-      });
-
-      // 重置数据
-      pageRef.current = 1;
-      await loadData();
       
     } catch (error) {
       Toast.show({
         icon: 'fail',
-        content: '归还失败',
+        content: error instanceof Error ? error.message : '归还失败',
       });
     }
   };
@@ -472,7 +492,7 @@ export default function AdminTable() {
           ))}
         </List>
       ) : (
-        <Empty description="暂无数据" />
+        !isLoading && <Empty description="暂无数据" />
       )}
 
       {/* 无限滚动 */}
