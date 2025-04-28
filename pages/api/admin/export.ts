@@ -64,7 +64,9 @@ export default async function handler(
       where,
       orderBy: { tijiaoRiqi: 'desc' },
     });
-
+    if(data.length === 0) {
+      return res.status(404).json({ message: '暂无数据' });
+    }
     // 格式化数据
     const formattedData = data.map(item => ({
       '姓名': item.xingming,
