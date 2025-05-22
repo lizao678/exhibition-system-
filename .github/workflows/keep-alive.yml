@@ -2,29 +2,44 @@ name: Keep Database Alive
 
 on:
   schedule:
-    # 每 6 小时运行一次
-    - cron: '0 */6 * * *'
-  # 允许手动触发
-  workflow_dispatch:
+    - cron: '0 */6 * * *'  # 每6小时运行一次
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
   keep-alive:
     runs-on: ubuntu-latest
     steps:
-      - name: Call Keep Alive API
+      - name: 调用 Keep Alive API
         run: |
           echo "开始调用 Keep Alive API..."
-          response=$(curl -s -w "\n%{http_code}" "https://${{ secrets.VERCEL_URL }}/api/keep-alive?key=${{ secrets.KEEP_ALIVE_KEY }}")
-          status_code=$(echo "$response" | tail -n1)
-          body=$(echo "$response" | sed '$d')
           
-          echo "状态码: $status_code"
-          echo "响应内容: $body"
+          # 构建完整的 API URL
+          API_URL="https://${{ secrets.VERCEL_URL }}/api/keep-alive?key=${{ secrets.KEEP_ALIVE_KEY }}"
+          echo "目标 URL: $API_URL"
           
-          if [ "$status_code" -eq 200 ]; then
-            echo "✅ Keep Alive API 调用成功"
+          # 测试网络连接
+          echo "测试网络连接..."
+          ping -c 3 ${{ secrets.VERCEL_URL }} || true
+          
+          # 使用 curl 调用 API，添加详细输出
+          echo "开始 API 调用..."
+          RESPONSE=$(curl -v -w "\nHTTP_STATUS: %{http_code}" "$API_URL" 2>&1)
+          
+          # 提取 HTTP 状态码
+          HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d' ' -f2)
+          echo "HTTP 状态码: $HTTP_STATUS"
+          
+          # 提取响应体
+          BODY=$(echo "$RESPONSE" | sed -n '/^{/,/^}/p')
+          echo "响应内容: $BODY"
+          
+          # 检查是否成功
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "API 调用成功！"
             exit 0
           else
-            echo "❌ Keep Alive API 调用失败"
+            echo "API 调用失败！"
+            echo "详细错误信息："
+            echo "$RESPONSE"
             exit 1
           fi 
