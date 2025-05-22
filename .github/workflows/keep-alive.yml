@@ -1,0 +1,30 @@
+name: Keep Database Alive
+
+on:
+  schedule:
+    # 每 6 小时运行一次
+    - cron: '0 */6 * * *'
+  # 允许手动触发
+  workflow_dispatch:
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Keep Alive API
+        run: |
+          echo "开始调用 Keep Alive API..."
+          response=$(curl -s -w "\n%{http_code}" "https://${{ secrets.VERCEL_URL }}/api/keep-alive?key=${{ secrets.KEEP_ALIVE_KEY }}")
+          status_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "状态码: $status_code"
+          echo "响应内容: $body"
+          
+          if [ "$status_code" -eq 200 ]; then
+            echo "✅ Keep Alive API 调用成功"
+            exit 0
+          else
+            echo "❌ Keep Alive API 调用失败"
+            exit 1
+          fi 
