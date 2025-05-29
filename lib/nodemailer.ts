@@ -8,7 +8,7 @@ if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
 
 // 创建邮件传输器
 const transporter = nodemailer.createTransport({
-  host: 'smtp.qq.com', // 使用 QQ 邮箱的 SMTP 服务器
+  host: 'smtp.qiye.aliyun.com', // 使用 阿里 邮箱的 SMTP 服务器
   port: 465,
   secure: true,
   auth: {
