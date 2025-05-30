@@ -83,7 +83,7 @@ export default function Login() {
               footer={
                 <Button
                   block
-                  loading
+                  loading={loading}
                   color="primary"
                   size="large"
                   onClick={handleSubmit}
