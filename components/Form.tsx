@@ -18,6 +18,7 @@ import {
 } from 'antd-mobile-icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
+import { useFetch } from '../hooks/useFetch';
 
 // 配置 dayjs
 dayjs.locale('zh-cn');
@@ -31,6 +32,11 @@ interface FormData {
   yangyiBianhao?: string;
 }
 
+interface FormResponse {
+  id: number;
+  message: string;
+}
+
 export default function Form() {
   // 表单状态
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,6 +44,8 @@ export default function Form() {
   const [jinruVisible, setJinruVisible] = useState(false);
   const [yujiGuihuanRiqi, setYujiGuihuanRiqi] = useState<Date | null>(null);
   const [guihuanVisible, setGuihuanVisible] = useState(false);
+
+  const { fetchData: submitForm } = useFetch<FormResponse>();
 
   // 表单处理
   const {
@@ -81,33 +89,20 @@ export default function Form() {
         return;
       }
 
-      // 发送表单数据
-      const response = await fetch('/api/form/submit', {
+      const result = await submitForm('/api/form/submit', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           ...data,
           jinruRiqi,
           yujiGuihuanRiqi: data.jieyongYangyi ? yujiGuihuanRiqi : null,
         }),
-      });
-
-      if (!response.ok) {
-        throw new Error('提交失败');
-      }
-
-      const result = await response.json();
-      
-      Toast.show({
-        icon: 'success',
-        content: '提交成功',
-      });
-
-      // 跳转到信息页面
-      setTimeout(() => {
-        window.location.href = `/info?id=${result.id}`;
+        showError: true,
+        showSuccess: true,
+        successMessage: '提交成功',
+        requireAuth: false,
+      });    // 跳转到信息页面
+    setTimeout(() => {
+        window.location.href = `/info?id=${result?.id}`;
       }, 1500);
     } catch (error) {
       console.error('提交失败:', error);

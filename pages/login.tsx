@@ -14,12 +14,17 @@ import {
   UserOutline,
   LockOutline,
 } from 'antd-mobile-icons';
+import { useFetch } from '../hooks/useFetch';
+
+interface LoginResponse {
+  token: string;
+}
 
 export default function Login() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { fetchData: login,loading } = useFetch<LoginResponse>();
 
   // 检查是否已登录
   useEffect(() => {
@@ -39,46 +44,23 @@ export default function Login() {
       return;
     }
 
-    try {
-      setIsSubmitting(true);
+    const result = await login('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        yonghuming: username,
+        mima: password,
+      }),
+      showError: true,
+      showSuccess: true,
+      successMessage: '登录成功',
+      requireAuth: false,
+    });
 
-      // 发送登录请求
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          yonghuming: username,
-          mima: password,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('用户名或密码错误');
-      }
-
-      const result = await response.json();
-
-      // 保存 token
+    if (result) {
       localStorage.setItem('adminToken', result.token);
-
-      Toast.show({
-        icon: 'success',
-        content: '登录成功',
-      });
-
-      // 跳转到管理页面
       setTimeout(() => {
         router.replace('/admin');
       }, 1000);
-    } catch (error) {
-      Toast.show({
-        icon: 'fail',
-        content: '登录失败，请检查用户名和密码',
-      });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -101,9 +83,9 @@ export default function Login() {
               footer={
                 <Button
                   block
+                  loading
                   color="primary"
                   size="large"
-                  loading={isSubmitting}
                   onClick={handleSubmit}
                 >
                   登录

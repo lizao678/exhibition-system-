@@ -18,6 +18,7 @@ import {
   Grid
 } from 'antd-mobile';
 import { CalendarOutline } from 'antd-mobile-icons';
+import { useFetch } from '../hooks/useFetch';
 
 // 数据类型
 interface TableData {
@@ -60,6 +61,11 @@ export default function AdminTable() {
   const pageRef = useRef(1);
   const PAGE_SIZE = 10;
 
+  const { fetchData: fetchTableData } = useFetch<PaginatedData>();
+  const { fetchData: fetchDelete } = useFetch();
+  const { fetchData: fetchUpdate } = useFetch();
+  const { fetchData: fetchExport } = useFetch();
+
   // 加载数据
   const loadData = useCallback(async (isLoadMore = false) => {
     try {
@@ -72,7 +78,6 @@ export default function AdminTable() {
         return;
       }
 
-      // 构建查询参数
       const params = new URLSearchParams({
         page: pageRef.current.toString(),
         pageSize: PAGE_SIZE.toString(),
@@ -82,7 +87,6 @@ export default function AdminTable() {
         params.append('search', searchText);
       }
 
-      // 添加日期范围参数
       if (dateRange.startDate) {
         params.append('startDate', dateRange.startDate.toISOString());
       }
@@ -90,27 +94,22 @@ export default function AdminTable() {
         params.append('endDate', dateRange.endDate.toISOString());
       }
 
-      // 发送请求
-      const response = await fetch(`/api/admin/data?${params.toString()}`, {
+      const result = await fetchTableData(`/api/admin/data?${params.toString()}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        showError: true,
+        requireAuth: true,
       });
 
-      if (!response.ok) {
-        throw new Error('获取数据失败');
+      if (result) {
+        if (isLoadMore) {
+          setData(prev => [...prev, ...result.list]);
+        } else {
+          setData(result.list);
+        }
+        setHasMore(result.list.length === PAGE_SIZE);
       }
-
-      const result: PaginatedData = await response.json();
-      
-      if (isLoadMore) {
-        setData(prev => [...prev, ...result.list]);
-      } else {
-        setData(result.list);
-      }
-      
-      setHasMore(result.list.length === PAGE_SIZE);
-      
     } catch (error) {
       Toast.show({
         icon: 'fail',
@@ -120,7 +119,7 @@ export default function AdminTable() {
     } finally {
       setIsLoading(false);
     }
-  }, [searchText, dateRange, router]);
+  }, [searchText, dateRange, router, fetchTableData]);
 
   // 删除数据
   const handleDelete = async (id: number) => {
@@ -137,28 +136,22 @@ export default function AdminTable() {
 
       if (!result) return;
 
-      const response = await fetch('/api/form/delete', {
+      const success = await fetchDelete('/api/form/delete', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ id }),
+        showSuccess: true,
+        successMessage: '删除成功',
+        requireAuth: true,
       });
 
-      if (!response.ok) {
-        throw new Error('删除失败');
+      if (success) {
+        pageRef.current = 1;
+        await loadData();
       }
-
-      Toast.show({
-        icon: 'success',
-        content: '删除成功',
-      });
-
-      // 重置数据
-      pageRef.current = 1;
-      await loadData();
-      
     } catch (error) {
       Toast.show({
         icon: 'fail',
@@ -189,7 +182,7 @@ export default function AdminTable() {
               duration: 0,
             });
 
-            const response = await fetch('/api/form/update', {
+            const success = await fetchUpdate('/api/form/update', {
               method: 'PUT',
               headers: {
                 'Content-Type': 'application/json',
@@ -199,22 +192,15 @@ export default function AdminTable() {
                 id,
                 shijiGuihuanRiqi: date.toISOString(),
               }),
+              showSuccess: true,
+              successMessage: '归还成功',
+              requireAuth: true,
             });
 
-            if (!response.ok) {
-              const error = await response.json();
-              throw new Error(error.message || '更新失败');
+            if (success) {
+              pageRef.current = 1;
+              await loadData();
             }
-
-            Toast.clear();
-            Toast.show({
-              icon: 'success',
-              content: '归还成功',
-            });
-
-            // 重置数据
-            pageRef.current = 1;
-            await loadData();
           } catch (error) {
             Toast.clear();
             Toast.show({

@@ -1,8 +1,9 @@
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
 import Head from 'next/head';
+import { Result, DotLoading, SafeArea } from 'antd-mobile';
+import { useFetch } from '../hooks/useFetch';
 import InfoDisplay from '../components/InfoDisplay';
-import { DotLoading, SafeArea, Result } from 'antd-mobile';
 
 // 数据类型
 interface InfoData {
@@ -21,35 +22,20 @@ interface InfoData {
 export default function Info() {
   const router = useRouter();
   const { id } = router.query;
-  const [data, setData] = useState<InfoData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { data, loading, error, fetchData } = useFetch<InfoData>();
 
   // 加载数据
   useEffect(() => {
     const loadData = async () => {
       if (!id) return;
-
-      try {
-        setIsLoading(true);
-        setError('');
-
-        const response = await fetch(`/api/form/${id}`);
-        if (!response.ok) {
-          throw new Error('获取数据失败');
-        }
-
-        const result = await response.json();
-        setData(result);
-      } catch (error) {
-        setError('加载数据失败，请稍后重试');
-      } finally {
-        setIsLoading(false);
-      }
+      await fetchData(`/api/form/${id}`, {
+        showError: true,
+        requireAuth: false,
+      });
     };
 
     loadData();
-  }, [id]);
+  }, [id, fetchData]);
 
   return (
     <>
@@ -61,7 +47,7 @@ export default function Info() {
       </Head>
 
       <main className="bg-white min-h-screen">
-        {isLoading ? (
+        {loading ? (
           <div className="flex items-center justify-center min-h-screen">
             <div className="text-center">
               <DotLoading color='primary' />
