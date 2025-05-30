@@ -18,8 +18,8 @@ const transporter = nodemailer.createTransport({
 });
 
 // 发送表单提交邮件
-export async function sendFormEmail(formData: FormData) {
-  const mailOptions = {
+export async function sendFormEmail(formData: FormData, cc?: string[]) {
+  const mailOptions: any = {
     from: process.env.EMAIL_USER,
     to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
     subject: '展厅进出登记通知',
@@ -38,6 +38,9 @@ export async function sendFormEmail(formData: FormData) {
       ${formData.shijiGuihuanRiqi ? `<p>实际归还时间：${formData.shijiGuihuanRiqi.toLocaleString()}</p>` : ''}
     `,
   };
+  if (cc && cc.length > 0) {
+    mailOptions.cc = cc;
+  }
 
   try {
     await transporter.sendMail(mailOptions);

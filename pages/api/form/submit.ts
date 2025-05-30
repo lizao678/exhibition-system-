@@ -48,9 +48,18 @@ export default async function handler(
       },
     });
 
+    // 获取抄送邮箱
+    let cc: string[] = [];
+    try {
+      const config = await prisma.config.findUnique({ where: { key: 'ccmail' } });
+      if (config && config.value) {
+        cc = JSON.parse(config.value);
+      }
+    } catch {}
+
     // 发送邮件通知
     try {
-      await sendFormEmail(formData);
+      await sendFormEmail(formData, cc);
     } catch (error) {
       console.error('发送邮件失败:', error);
       // 邮件发送失败不影响表单提交

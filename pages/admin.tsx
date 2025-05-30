@@ -4,6 +4,7 @@ import Head from 'next/head';
 import AdminTable from '../components/AdminTable';
 import { NavBar, DotLoading, SafeArea } from 'antd-mobile';
 import ClientOnly from '../components/ClientOnly';
+import { MailOutline } from 'antd-mobile-icons';
 
 export default function Admin() {
   const router = useRouter();
@@ -58,6 +59,7 @@ export default function Admin() {
           <ClientOnly>
             {/* 顶部导航栏 */}
             <NavBar 
+              left={<div onClick={() => router.push('/ccmail')}> <MailOutline className="text-primary text-xl" /> </div>}
               right={<span onClick={handleLogout} className="text-primary">退出登录</span>}
               backArrow={false}
             >
