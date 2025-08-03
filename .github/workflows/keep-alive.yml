@@ -1,45 +1,74 @@
-name: Keep Database Alive
+name: Keep Repository Active
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # 每6小时运行一次
+    - cron: '0 */25 * * *'  # 每25小时运行一次
   workflow_dispatch:  # 允许手动触发
 
 jobs:
   keep-alive:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: 调用 Keep Alive API
         run: |
           echo "开始调用 Keep Alive API..."
-          
+
           # 构建完整的 API URL
           API_URL="https://${{ secrets.VERCEL_URL }}/api/keep-alive?key=${{ secrets.KEEP_ALIVE_KEY }}"
           echo "目标 URL: $API_URL"
-          
+
           # 测试网络连接
           echo "测试网络连接..."
           ping -c 3 ${{ secrets.VERCEL_URL }} || true
-          
+
           # 使用 curl 调用 API，添加详细输出
           echo "开始 API 调用..."
           RESPONSE=$(curl -v -w "\nHTTP_STATUS: %{http_code}" "$API_URL" 2>&1)
-          
+
           # 提取 HTTP 状态码
           HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d' ' -f2)
           echo "HTTP 状态码: $HTTP_STATUS"
-          
+
           # 提取响应体
           BODY=$(echo "$RESPONSE" | sed -n '/^{/,/^}/p')
           echo "响应内容: $BODY"
-          
+
           # 检查是否成功
           if [ "$HTTP_STATUS" = "200" ]; then
             echo "API 调用成功！"
-            exit 0
           else
             echo "API 调用失败！"
             echo "详细错误信息："
             echo "$RESPONSE"
-            exit 1
-          fi 
+          fi
+
+      - name: 更新数据库活跃时间
+        run: |
+          # 获取当前时间
+          CURRENT_TIME=$(date '+%Y-%m-%d %H:%M')
+          echo "当前时间: $CURRENT_TIME"
+
+          # 更新 README.md 中的时间戳
+          sed -i "s/最新更新时间：.*/最新更新时间：$CURRENT_TIME/" README.md
+
+          echo "已更新 README.md 中的时间戳"
+
+      - name: 提交更改
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          # 检查是否有更改
+          if git diff --quiet; then
+            echo "没有检测到更改"
+          else
+            git add README.md
+            git commit -m "自动更新数据库活跃时间: $(date '+%Y-%m-%d %H:%M')"
+            git push
+            echo "已提交更改到仓库"
+          fi
