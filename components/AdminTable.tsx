@@ -25,6 +25,7 @@ interface TableData {
   id: number;
   xingming: string;
   bumen: string;
+  zhanting: string;
   jinruRiqi: string;
   shiyou: string;
   jieyongYangyi: boolean;
@@ -443,6 +444,7 @@ export default function AdminTable() {
                       <span className="text-lg font-medium">{item.xingming}</span>
                       <span className="text-gray-500">{item.bumen}</span>
                     </div>
+                    <div>展厅：{item.zhanting}</div>
                     <div>
                       进入时间：{formatDate(item.jinruRiqi)}
                     </div>

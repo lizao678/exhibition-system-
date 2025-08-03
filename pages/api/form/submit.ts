@@ -14,6 +14,7 @@ export default async function handler(
     const {
       xingming,
       bumen,
+      zhanting,
       jinruRiqi,
       shiyou,
       jieyongYangyi,
@@ -22,7 +23,7 @@ export default async function handler(
     } = req.body;
 
     // 验证必填字段
-    if (!xingming || !bumen || !jinruRiqi || !shiyou) {
+    if (!xingming || !bumen || !zhanting || !jinruRiqi || !shiyou) {
       return res.status(400).json({ message: '请填写所有必填字段' });
     }
 
@@ -40,6 +41,7 @@ export default async function handler(
       data: {
         xingming,
         bumen,
+        zhanting,
         jinruRiqi: new Date(jinruRiqi),
         shiyou,
         jieyongYangyi,

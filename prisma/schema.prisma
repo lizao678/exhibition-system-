@@ -14,6 +14,7 @@ model FormData {
   id              Int       @id @default(autoincrement())
   xingming        String    // 姓名
   bumen           String    // 部门
+  zhanting        String    @default("大展厅") // 展厅
   jinruRiqi       DateTime  // 进入日期
   shiyou          String    // 事由
   jieyongYangyi   Boolean   @default(false) // 是否借用样衣
@@ -25,6 +26,7 @@ model FormData {
   // 索引配置
   @@index([xingming])
   @@index([bumen])
+  @@index([zhanting])
   @@index([yangyiBianhao])
 }
 

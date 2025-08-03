@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   Form as AntdForm,
@@ -9,12 +9,14 @@ import {
   Toast,
   DatePicker,
   Space,
+  Picker,
 } from 'antd-mobile';
-import { 
-  UserOutline, 
-  TeamOutline, 
-  CalendarOutline, 
-  ClockCircleOutline 
+import {
+  UserOutline,
+  TeamOutline,
+  CalendarOutline,
+  ClockCircleOutline,
+  DownOutline
 } from 'antd-mobile-icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
@@ -27,6 +29,7 @@ dayjs.locale('zh-cn');
 interface FormData {
   xingming: string;
   bumen: string;
+  zhanting: string;
   shiyou: string;
   jieyongYangyi: boolean;
   yangyiBianhao?: string;
@@ -44,6 +47,16 @@ export default function Form() {
   const [jinruVisible, setJinruVisible] = useState(false);
   const [yujiGuihuanRiqi, setYujiGuihuanRiqi] = useState<Date | null>(null);
   const [guihuanVisible, setGuihuanVisible] = useState(false);
+  const [zhantingVisible, setZhantingVisible] = useState(false);
+  const [selectedZhanting, setSelectedZhanting] = useState<string[]>(['大展厅']);
+
+  // 展厅选项
+  const zhantingOptions = [
+    [
+      { label: '大展厅', value: '大展厅' },
+      { label: '小展厅', value: '小展厅' },
+    ],
+  ];
 
   const { fetchData: submitForm } = useFetch<FormResponse>();
 
@@ -58,11 +71,17 @@ export default function Form() {
   } = useForm<FormData>({
     defaultValues: {
       jieyongYangyi: false,
+      zhanting: '大展厅',
     },
   });
 
   // 监听是否借用样衣
   const jieyongYangyi = watch('jieyongYangyi');
+
+  // 初始化展厅值
+  useEffect(() => {
+    setValue('zhanting', '大展厅');
+  }, [setValue]);
 
   // 提交处理
   const onSubmit = async (data: FormData) => {
@@ -70,7 +89,7 @@ export default function Form() {
       setIsSubmitting(true);
 
       // 检查必填项
-      if (!data.xingming || !data.bumen || !data.shiyou) {
+      if (!data.xingming || !data.bumen || !data.zhanting || !data.shiyou) {
         Toast.show({
           icon: 'fail',
           content: '请填写所有必填字段',
@@ -144,11 +163,33 @@ export default function Form() {
 
         {/* 部门 */}
         <AntdForm.Item label='部门' required>
-          <Input 
-            placeholder='请输入部门' 
+          <Input
+            placeholder='请输入部门'
             onChange={(val) => setValue('bumen', val)}
           />
           {errors.bumen && <div className="error-text">请输入部门</div>}
+        </AntdForm.Item>
+
+        {/* 选择展厅 */}
+        <AntdForm.Item label='选择展厅' required>
+          <Space align='center' block onClick={() => setZhantingVisible(true)}>
+            <span style={{ color: selectedZhanting.length > 0 ? 'inherit' : '#ccc' }}>
+              {selectedZhanting.length > 0 ? selectedZhanting[0] : '请选择展厅'}
+            </span>
+            <DownOutline />
+          </Space>
+          <Picker
+            columns={zhantingOptions}
+            visible={zhantingVisible}
+            onClose={() => setZhantingVisible(false)}
+            onConfirm={(val) => {
+              setSelectedZhanting(val);
+              setValue('zhanting', val[0] as string);
+              setZhantingVisible(false);
+            }}
+            value={selectedZhanting}
+          />
+          {errors.zhanting && <div className="error-text">请选择展厅</div>}
         </AntdForm.Item>
 
         {/* 进入日期 */}

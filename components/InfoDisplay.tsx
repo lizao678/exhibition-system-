@@ -18,6 +18,7 @@ interface InfoData {
   id: number;
   xingming: string;
   bumen: string;
+  zhanting: string;
   jinruRiqi: string;
   shiyou: string;
   jieyongYangyi: boolean;
@@ -52,6 +53,7 @@ export default function InfoDisplay({ data }: InfoDisplayProps) {
           <List header='基本信息'>
             <List.Item extra={data.xingming}>姓名</List.Item>
             <List.Item extra={data.bumen}>部门</List.Item>
+            <List.Item extra={data.zhanting}>展厅</List.Item>
             <List.Item extra={formatDate(data.jinruRiqi)}>进入日期</List.Item>
             <List.Item extra={data.shiyou}>事由</List.Item>
           </List>

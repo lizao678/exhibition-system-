@@ -19,6 +19,7 @@ export default async function handler(
           OR: [
             { xingming: { contains: search as string } },
             { bumen: { contains: search as string } },
+            { zhanting: { contains: search as string } },
             { shiyou: { contains: search as string } },
           ],
         }
