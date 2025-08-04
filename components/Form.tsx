@@ -11,6 +11,7 @@ import {
   Space,
   Picker,
 } from 'antd-mobile';
+import type { PickerValue } from 'antd-mobile/es/components/picker-view';
 import {
   UserOutline,
   TeamOutline,
@@ -48,7 +49,7 @@ export default function Form() {
   const [yujiGuihuanRiqi, setYujiGuihuanRiqi] = useState<Date | null>(null);
   const [guihuanVisible, setGuihuanVisible] = useState(false);
   const [zhantingVisible, setZhantingVisible] = useState(false);
-  const [selectedZhanting, setSelectedZhanting] = useState<string[]>(['大展厅']);
+  const [selectedZhanting, setSelectedZhanting] = useState<PickerValue[]>(['大展厅']);
 
   // 展厅选项
   const zhantingOptions = [
@@ -173,8 +174,8 @@ export default function Form() {
         {/* 选择展厅 */}
         <AntdForm.Item label='选择展厅' required>
           <Space align='center' block onClick={() => setZhantingVisible(true)}>
-            <span style={{ color: selectedZhanting.length > 0 ? 'inherit' : '#ccc' }}>
-              {selectedZhanting.length > 0 ? selectedZhanting[0] : '请选择展厅'}
+            <span style={{ color: selectedZhanting.length > 0 && selectedZhanting[0] ? 'inherit' : '#ccc' }}>
+              {selectedZhanting.length > 0 && selectedZhanting[0] ? selectedZhanting[0] : '请选择展厅'}
             </span>
             <DownOutline />
           </Space>
@@ -184,7 +185,7 @@ export default function Form() {
             onClose={() => setZhantingVisible(false)}
             onConfirm={(val) => {
               setSelectedZhanting(val);
-              setValue('zhanting', val[0] as string);
+              setValue('zhanting', (val[0] || '') as string);
               setZhantingVisible(false);
             }}
             value={selectedZhanting}

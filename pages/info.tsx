@@ -10,6 +10,7 @@ interface InfoData {
   id: number;
   xingming: string;
   bumen: string;
+  zhanting: string;
   jinruRiqi: string;
   shiyou: string;
   jieyongYangyi: boolean;
