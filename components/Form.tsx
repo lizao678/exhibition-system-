@@ -49,13 +49,13 @@ export default function Form() {
   const [yujiGuihuanRiqi, setYujiGuihuanRiqi] = useState<Date | null>(null);
   const [guihuanVisible, setGuihuanVisible] = useState(false);
   const [zhantingVisible, setZhantingVisible] = useState(false);
-  const [selectedZhanting, setSelectedZhanting] = useState<PickerValue[]>(['大展厅']);
+  const [selectedZhanting, setSelectedZhanting] = useState<PickerValue[]>([]);
 
   // 展厅选项
   const zhantingOptions = [
     [
-      { label: '大展厅', value: '大展厅' },
-      { label: '小展厅', value: '小展厅' },
+      { label: '展厅', value: '展厅' },
+      { label: '样衣间', value: '样衣间' },
     ],
   ];
 
