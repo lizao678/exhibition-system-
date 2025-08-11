@@ -23,21 +23,59 @@ export default async function handler(
   }
 
   try {
-    console.log(`[${timestamp}] 开始执行数据库查询`);
-    // 执行一个简单的查询来保持数据库连接活跃
-    const result = await prisma.formData.findFirst({
-      select: { id: true },
-    });
-    console.log(`[${timestamp}] 数据库查询成功: ${result ? '找到记录' : '未找到记录'}`);
+    console.log(`[${timestamp}] 开始执行数据库保活操作`);
 
-    res.status(200).json({ 
-      message: '数据库连接正常',
+    // 1. 查询表单数据总数
+    const formCount = await prisma.formData.count();
+    console.log(`[${timestamp}] 表单数据总数: ${formCount}`);
+
+    // 2. 查询最近的表单记录
+    const recentForm = await prisma.formData.findFirst({
+      orderBy: { tijiaoRiqi: 'desc' },
+      select: { id: true, xingming: true, tijiaoRiqi: true },
+    });
+    console.log(`[${timestamp}] 最近表单记录: ${recentForm ? `ID ${recentForm.id}` : '无记录'}`);
+
+    // 3. 查询管理员数量
+    const adminCount = await prisma.admin.count();
+    console.log(`[${timestamp}] 管理员数量: ${adminCount}`);
+
+    // 4. 查询配置项数量
+    const configCount = await prisma.config.count();
+    console.log(`[${timestamp}] 配置项数量: ${configCount}`);
+
+    // 5. 执行一个轻量级的聚合查询
+    const stats = await prisma.formData.groupBy({
+      by: ['zhanting'],
+      _count: {
+        id: true,
+      },
+      orderBy: {
+        _count: {
+          id: 'desc',
+        },
+      },
+      take: 10,
+    });
+    console.log(`[${timestamp}] 展厅统计: ${stats.length} 个展厅类型`);
+
+    res.status(200).json({
+      message: '数据库保活成功',
       timestamp,
-      result: result ? '找到记录' : '未找到记录'
+      stats: {
+        formCount,
+        adminCount,
+        configCount,
+        recentForm: recentForm ? {
+          id: recentForm.id,
+          submitTime: recentForm.tijiaoRiqi
+        } : null,
+        zhantingStats: stats
+      }
     });
   } catch (error) {
-    console.error(`[${timestamp}] 保持数据库活跃失败:`, error);
-    res.status(500).json({ 
+    console.error(`[${timestamp}] 数据库保活失败:`, error);
+    res.status(500).json({
       message: '服务器错误',
       timestamp,
       error: error instanceof Error ? error.message : '未知错误'

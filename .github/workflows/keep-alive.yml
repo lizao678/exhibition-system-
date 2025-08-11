@@ -2,7 +2,8 @@ name: Keep Repository Active
 
 on:
   schedule:
-    - cron: '0 */25 * * *'  # 每25小时运行一次
+    - cron: '0 */12 * * *'  # 每12小时运行一次，更频繁
+    - cron: '30 8 * * *'    # 每天上午8:30额外运行一次
   workflow_dispatch:  # 允许手动触发
 
 jobs:
@@ -14,37 +15,42 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 调用 Keep Alive API
+      - name: 执行多重保活操作
         run: |
-          echo "开始调用 Keep Alive API..."
+          echo "开始执行多重保活操作..."
+          BASE_URL="https://${{ secrets.VERCEL_URL }}"
 
-          # 构建完整的 API URL
-          API_URL="https://${{ secrets.VERCEL_URL }}/api/keep-alive?key=${{ secrets.KEEP_ALIVE_KEY }}"
-          echo "目标 URL: $API_URL"
+          # 1. 调用主页面（模拟用户访问）
+          echo "1. 访问主页面..."
+          curl -s -o /dev/null -w "主页访问状态: %{http_code}, 响应时间: %{time_total}s\n" "$BASE_URL/"
 
-          # 测试网络连接
-          echo "测试网络连接..."
-          ping -c 3 ${{ secrets.VERCEL_URL }} || true
+          # 2. 调用健康检查API
+          echo "2. 执行健康检查..."
+          HEALTH_RESPONSE=$(curl -s -w "\nHTTP_STATUS: %{http_code}" "$BASE_URL/api/health-check")
+          HEALTH_STATUS=$(echo "$HEALTH_RESPONSE" | grep "HTTP_STATUS:" | cut -d' ' -f2)
+          echo "健康检查状态: $HEALTH_STATUS"
 
-          # 使用 curl 调用 API，添加详细输出
-          echo "开始 API 调用..."
-          RESPONSE=$(curl -v -w "\nHTTP_STATUS: %{http_code}" "$API_URL" 2>&1)
-
-          # 提取 HTTP 状态码
+          # 3. 调用 Keep Alive API
+          echo "3. 执行数据库保活..."
+          API_URL="$BASE_URL/api/keep-alive?key=${{ secrets.KEEP_ALIVE_KEY }}"
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS: %{http_code}" "$API_URL")
           HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d' ' -f2)
-          echo "HTTP 状态码: $HTTP_STATUS"
+          echo "保活API状态: $HTTP_STATUS"
 
-          # 提取响应体
-          BODY=$(echo "$RESPONSE" | sed -n '/^{/,/^}/p')
-          echo "响应内容: $BODY"
+          # 4. 访问登录页面（模拟管理员检查）
+          echo "4. 访问管理页面..."
+          curl -s -o /dev/null -w "登录页访问状态: %{http_code}\n" "$BASE_URL/login"
 
-          # 检查是否成功
-          if [ "$HTTP_STATUS" = "200" ]; then
-            echo "API 调用成功！"
+          # 5. 访问信息页面（模拟用户查看）
+          echo "5. 访问信息页面..."
+          curl -s -o /dev/null -w "信息页访问状态: %{http_code}\n" "$BASE_URL/info?id=1"
+
+          # 检查关键API是否成功
+          if [ "$HTTP_STATUS" = "200" ] && [ "$HEALTH_STATUS" = "200" ]; then
+            echo "✅ 所有保活操作执行成功！"
           else
-            echo "API 调用失败！"
-            echo "详细错误信息："
-            echo "$RESPONSE"
+            echo "❌ 部分保活操作失败"
+            echo "详细响应: $RESPONSE"
           fi
 
       - name: 更新数据库活跃时间
